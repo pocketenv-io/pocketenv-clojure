@@ -1,4 +1,5 @@
 # pocketenv-clojure
+[![ci](https://github.com/pocketenv-io/pocketenv-clojure/actions/workflows/ci.yml/badge.svg)](https://github.com/pocketenv-io/pocketenv-clojure/actions/workflows/ci.yml)
 [![Clojars Project](https://img.shields.io/clojars/v/io.pocketenv/pocketenv.svg)](https://clojars.org/io.pocketenv/pocketenv)
 
 Clojure SDK for the [Pocketenv](https://pocketenv.io) sandbox platform.

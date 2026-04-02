@@ -9,7 +9,7 @@ Clojure SDK for the [Pocketenv](https://pocketenv.io) sandbox platform.
 Add to your `deps.edn`:
 
 ```clojure
-{:deps io.pocketenv/pocketenv {:mvn/version "0.1.0-SNAPSHOT"}}
+{:deps io.pocketenv/pocketenv {:mvn/version "0.1.1-SNAPSHOT"}}
 ```
 
 ## Configuration

@@ -1,5 +1,7 @@
 (ns pocketenv-io.pocketenv-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
+            [clojure.java.io :as io]
+            [pocketenv-io.copy :as copy]
             [pocketenv-io.crypto :as crypto]
             [pocketenv-io.sandbox :as sandbox]
             [pocketenv-io.api :as api]))
@@ -81,3 +83,121 @@
   (testing "unwrap extracts from {:ok sandbox}"
     (let [sb (sandbox/map->Sandbox {:id "x" :name "x"})]
       (is (= sb (#'sandbox/unwrap {:ok sb}))))))
+
+;; ---------------------------------------------------------------------------
+;; copy/compress + copy/decompress
+;; ---------------------------------------------------------------------------
+
+(deftest compress-decompress-file-test
+  (testing "single file roundtrip"
+    (let [tmp-src  (java.io.File/createTempFile "pe-test-src" ".txt")
+          tmp-dest (java.io.File/createTempFile "pe-test-dest" "")
+          dest-dir (io/file (System/getProperty "java.io.tmpdir")
+                            (str "pe-test-dest-dir-" (System/currentTimeMillis)))]
+      (try
+        (.delete tmp-dest)
+        (spit tmp-src "hello from pocketenv")
+        (let [compress-r (copy/compress (.getAbsolutePath tmp-src))]
+          (is (nil? (:error compress-r)))
+          (let [archive (:ok compress-r)
+                _       (is (some? archive))
+                dc-r    (copy/decompress archive (.getAbsolutePath dest-dir))]
+            (is (= :ok dc-r))
+            (let [extracted (io/file dest-dir (.getName tmp-src))]
+              (is (.exists extracted))
+              (is (= "hello from pocketenv" (slurp extracted))))
+            (.delete archive)))
+        (finally
+          (.delete tmp-src)
+          (run! #(.delete %) (file-seq dest-dir)))))))
+
+(deftest compress-decompress-dir-test
+  (testing "directory roundtrip"
+    (let [src-dir  (io/file (System/getProperty "java.io.tmpdir")
+                            (str "pe-test-src-dir-" (System/currentTimeMillis)))
+          dest-dir (io/file (System/getProperty "java.io.tmpdir")
+                            (str "pe-test-dest-dir-" (System/currentTimeMillis)))]
+      (try
+        (.mkdirs src-dir)
+        (spit (io/file src-dir "a.txt") "file-a")
+        (spit (io/file src-dir "b.txt") "file-b")
+        (let [compress-r (copy/compress (.getAbsolutePath src-dir))]
+          (is (nil? (:error compress-r)))
+          (let [archive (:ok compress-r)
+                dc-r    (copy/decompress archive (.getAbsolutePath dest-dir))]
+            (is (= :ok dc-r))
+            (is (= "file-a" (slurp (io/file dest-dir "a.txt"))))
+            (is (= "file-b" (slurp (io/file dest-dir "b.txt"))))
+            (.delete archive)))
+        (finally
+          (run! #(.delete %) (file-seq src-dir))
+          (run! #(.delete %) (file-seq dest-dir)))))))
+
+;; ---------------------------------------------------------------------------
+;; copy/storage-url
+;; ---------------------------------------------------------------------------
+
+(deftest storage-url-test
+  (testing "returns default when POCKETENV_STORAGE_URL is not set"
+    (when (nil? (System/getenv "POCKETENV_STORAGE_URL"))
+      (is (= "https://sandbox.pocketenv.io" (copy/storage-url))))))
+
+;; ---------------------------------------------------------------------------
+;; sandbox copy delegation
+;; ---------------------------------------------------------------------------
+
+(deftest sandbox-upload-test
+  (testing "upload delegates to copy/upload with sandbox id"
+    (let [calls (atom nil)
+          sb    (sandbox/map->Sandbox {:id "sb-123" :name "my-box"})]
+      (with-redefs [pocketenv-io.copy/upload
+                    (fn [sandbox-id local-path sandbox-path opts]
+                      (reset! calls {:sandbox-id   sandbox-id
+                                     :local-path   local-path
+                                     :sandbox-path sandbox-path
+                                     :opts         opts})
+                      :ok)]
+        (is (= :ok (sandbox/upload sb "./src" "/workspace" {:token "t"})))
+        (is (= {:sandbox-id   "sb-123"
+                :local-path   "./src"
+                :sandbox-path "/workspace"
+                :opts         {:token "t"}}
+               @calls))))))
+
+(deftest sandbox-download-test
+  (testing "download delegates to copy/download with sandbox id"
+    (let [calls (atom nil)
+          sb    (sandbox/map->Sandbox {:id "sb-456" :name "my-box"})]
+      (with-redefs [pocketenv-io.copy/download
+                    (fn [sandbox-id sandbox-path local-path opts]
+                      (reset! calls {:sandbox-id   sandbox-id
+                                     :sandbox-path sandbox-path
+                                     :local-path   local-path
+                                     :opts         opts})
+                      :ok)]
+        (is (= :ok (sandbox/download sb "/workspace" "./output" {:token "t"})))
+        (is (= {:sandbox-id   "sb-456"
+                :sandbox-path "/workspace"
+                :local-path   "./output"
+                :opts         {:token "t"}}
+               @calls))))))
+
+(deftest sandbox-copy-to-test
+  (testing "copy-to delegates to copy/to with sandbox id"
+    (let [calls (atom nil)
+          sb    (sandbox/map->Sandbox {:id "sb-789" :name "my-box"})]
+      (with-redefs [pocketenv-io.copy/to
+                    (fn [src-id dest-id src-path dest-path opts]
+                      (reset! calls {:src-id    src-id
+                                     :dest-id   dest-id
+                                     :src-path  src-path
+                                     :dest-path dest-path
+                                     :opts      opts})
+                      :ok)]
+        (is (= :ok (sandbox/copy-to sb "dest-999" "/src" "/dest" {:token "t"})))
+        (is (= {:src-id    "sb-789"
+                :dest-id   "dest-999"
+                :src-path  "/src"
+                :dest-path "/dest"
+                :opts      {:token "t"}}
+               @calls))))))

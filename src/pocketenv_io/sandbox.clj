@@ -334,3 +334,45 @@
    (let [sb  (unwrap sandbox-or-result)
          api (requiring-resolve 'pocketenv-io.api/put-tailscale-auth-key)]
      (api (:id sb) auth-key opts))))
+
+;; ---------------------------------------------------------------------------
+;; Copy
+;; ---------------------------------------------------------------------------
+
+(defn upload
+  "Uploads a local file or directory to `sandbox-path` inside the sandbox.
+
+  The local path is compressed into a tar.gz archive, uploaded to storage,
+  and then extracted by the sandbox at `sandbox-path`.
+
+  Options: :token"
+  ([sandbox-or-result local-path sandbox-path] (upload sandbox-or-result local-path sandbox-path {}))
+  ([sandbox-or-result local-path sandbox-path opts]
+   (let [sb   (unwrap sandbox-or-result)
+         copy (requiring-resolve 'pocketenv-io.copy/upload)]
+     (copy (:id sb) local-path sandbox-path opts))))
+
+(defn download
+  "Downloads `sandbox-path` from the sandbox and extracts it to `local-path`.
+
+  The sandbox compresses the path into a tar.gz archive which is then
+  downloaded and extracted locally.
+
+  Options: :token"
+  ([sandbox-or-result sandbox-path local-path] (download sandbox-or-result sandbox-path local-path {}))
+  ([sandbox-or-result sandbox-path local-path opts]
+   (let [sb   (unwrap sandbox-or-result)
+         copy (requiring-resolve 'pocketenv-io.copy/download)]
+     (copy (:id sb) sandbox-path local-path opts))))
+
+(defn copy-to
+  "Copies `src-path` from this sandbox into `dest-path` inside `dest-sandbox-id`.
+  No local I/O is involved — the transfer goes directly through storage.
+
+  Options: :token"
+  ([sandbox-or-result dest-sandbox-id src-path dest-path]
+   (copy-to sandbox-or-result dest-sandbox-id src-path dest-path {}))
+  ([sandbox-or-result dest-sandbox-id src-path dest-path opts]
+   (let [sb   (unwrap sandbox-or-result)
+         copy (requiring-resolve 'pocketenv-io.copy/to)]
+     (copy (:id sb) dest-sandbox-id src-path dest-path opts))))

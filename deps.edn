@@ -3,7 +3,8 @@
         clj-http/clj-http        {:mvn/version "3.13.0"}
         cheshire/cheshire         {:mvn/version "5.13.0"}
         com.goterl/lazysodium-java {:mvn/version "5.1.4"}
-        net.java.dev.jna/jna      {:mvn/version "5.13.0"}}
+        net.java.dev.jna/jna      {:mvn/version "5.13.0"}
+        org.apache.commons/commons-compress {:mvn/version "1.26.1"}}
  :aliases
  {:test
   {:extra-paths ["test"]

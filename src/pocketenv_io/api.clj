@@ -203,6 +203,30 @@
       r)))
 
 ;; ---------------------------------------------------------------------------
+;; Copy
+;; ---------------------------------------------------------------------------
+
+(defn push-directory
+  "Asks the sandbox to push `directory-path` to storage. Returns {:ok uuid}."
+  [sandbox-id directory-path opts]
+  (let [r (client/post "/xrpc/io.pocketenv.sandbox.pushDirectory"
+                       {"sandboxId"     sandbox-id
+                        "directoryPath" directory-path}
+                       opts)]
+    (if-let [data (:ok r)]
+      {:ok (get data "uuid")}
+      r)))
+
+(defn pull-directory
+  "Asks the sandbox to pull the archive identified by `uuid` into `directory-path`."
+  [sandbox-id uuid directory-path opts]
+  (client/post "/xrpc/io.pocketenv.sandbox.pullDirectory"
+               {"uuid"          uuid
+                "sandboxId"     sandbox-id
+                "directoryPath" directory-path}
+               opts))
+
+;; ---------------------------------------------------------------------------
 ;; Actor / Profile
 ;; ---------------------------------------------------------------------------
 

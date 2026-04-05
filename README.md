@@ -9,7 +9,7 @@ Clojure SDK for the [Pocketenv](https://pocketenv.io) sandbox platform.
 Add to your `deps.edn`:
 
 ```clojure
-{:deps io.pocketenv/pocketenv {:mvn/version "0.1.1-SNAPSHOT"}}
+{:deps io.pocketenv/pocketenv {:mvn/version "0.1.2-SNAPSHOT"}}
 ```
 
 ## Configuration
@@ -25,8 +25,9 @@ Set one of the following before making any calls:
 Optional env vars:
 
 ```
-POCKETENV_API_URL    — API base URL (default: https://api.pocketenv.io)
-POCKETENV_PUBLIC_KEY — server public key for client-side encryption (hex-encoded)
+POCKETENV_API_URL     — API base URL (default: https://api.pocketenv.io)
+POCKETENV_PUBLIC_KEY  — server public key for client-side encryption (hex-encoded)
+POCKETENV_STORAGE_URL — storage base URL for file transfers (default: https://sandbox.pocketenv.io)
 ```
 
 ## Quick start
@@ -205,6 +206,32 @@ Private keys are encrypted client-side before transmission.
 (pocketenv/get-tailscale-auth-key "sandbox-id")
 ;; => {:ok #TailscaleAuthKey{:id "..." :auth-key "..." :created-at "..."}}
 ```
+
+---
+
+## Copying files
+
+Upload a local file or directory into a sandbox, download a sandbox path to local disk, or copy directly between two sandboxes — all through storage, with no manual archiving required.
+
+```clojure
+;; Upload a local directory to the sandbox
+(-> (pocketenv/get-sandbox "my-box")
+    (sandbox/upload "./my-project" "/workspace"))
+
+;; Upload a single file
+(-> (pocketenv/get-sandbox "my-box")
+    (sandbox/upload "./config.json" "/app/config.json"))
+
+;; Download a sandbox path to a local directory
+(-> (pocketenv/get-sandbox "my-box")
+    (sandbox/download "/workspace/output" "./output"))
+
+;; Copy a path from one sandbox to another (no local I/O)
+(-> (pocketenv/get-sandbox "source-box")
+    (sandbox/copy-to "dest-sandbox-id" "/workspace" "/workspace"))
+```
+
+All three functions return `:ok` on success or `{:error reason}` on failure and are pipe-safe — they accept a bare `Sandbox` or an `{:ok sandbox}` result from a previous step.
 
 ---
 

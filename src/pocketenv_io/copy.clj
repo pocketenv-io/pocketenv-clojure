@@ -119,7 +119,7 @@
                                                    :filename  "archive.tar.gz"
                                                    :mime-type "application/gzip"}]
                                :headers          {"Authorization" (str "Bearer " t)}
-                               :as               :json
+                               :as               :json-string-keys
                                :throw-exceptions false})]
           (if (<= 200 (:status resp) 299)
             {:ok (get-in resp [:body "uuid"])}

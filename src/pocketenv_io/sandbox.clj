@@ -41,6 +41,9 @@
 (defrecord TailscaleAuthKey
   [id auth-key created-at])
 
+(defrecord Backup
+  [id directory description expires-at created-at])
+
 ;; ---------------------------------------------------------------------------
 ;; Constructors from raw API maps
 ;; ---------------------------------------------------------------------------
@@ -114,6 +117,14 @@
     {:id         (get m "id")
      :auth-key   (get m "authKey")
      :created-at (get m "createdAt")}))
+
+(defn backup-from-map [m]
+  (map->Backup
+    {:id          (get m "id")
+     :directory   (get m "directory")
+     :description (get m "description")
+     :expires-at  (get m "expiresAt")
+     :created-at  (get m "createdAt")}))
 
 ;; ---------------------------------------------------------------------------
 ;; Pipe-safety helper
@@ -376,3 +387,38 @@
    (let [sb   (unwrap sandbox-or-result)
          copy (requiring-resolve 'pocketenv-io.copy/to)]
      (copy (:id sb) dest-sandbox-id src-path dest-path opts))))
+
+;; ---------------------------------------------------------------------------
+;; Backups
+;; ---------------------------------------------------------------------------
+
+(defn create-backup
+  "Creates a backup of `directory` inside the sandbox.
+
+  Options: :description, :ttl, :token"
+  ([sandbox-or-result directory] (create-backup sandbox-or-result directory {}))
+  ([sandbox-or-result directory opts]
+   (let [sb  (unwrap sandbox-or-result)
+         api (requiring-resolve 'pocketenv-io.api/create-backup)]
+     (api (:id sb) directory opts))))
+
+(defn list-backups
+  "Lists all backups for the sandbox.
+
+  Returns {:ok [Backup]}
+
+  Options: :token"
+  ([sandbox-or-result] (list-backups sandbox-or-result {}))
+  ([sandbox-or-result opts]
+   (let [sb  (unwrap sandbox-or-result)
+         api (requiring-resolve 'pocketenv-io.api/list-backups)]
+     (api (:id sb) opts))))
+
+(defn restore-backup
+  "Restores a backup by its id. Does not require a sandbox instance.
+
+  Options: :token"
+  ([backup-id] (restore-backup backup-id {}))
+  ([backup-id opts]
+   (let [api (requiring-resolve 'pocketenv-io.api/restore-backup)]
+     (api backup-id opts))))

@@ -9,7 +9,7 @@ Clojure SDK for the [Pocketenv](https://pocketenv.io) sandbox platform.
 Add to your `deps.edn`:
 
 ```clojure
-{:deps io.pocketenv/pocketenv {:mvn/version "0.1.3-SNAPSHOT"}}
+{:deps io.pocketenv/pocketenv {:mvn/version "0.1.4-SNAPSHOT"}}
 ```
 
 ## Configuration
@@ -232,6 +232,31 @@ Upload a local file or directory into a sandbox, download a sandbox path to loca
 ```
 
 All three functions return `:ok` on success or `{:error reason}` on failure and are pipe-safe — they accept a bare `Sandbox` or an `{:ok sandbox}` result from a previous step.
+
+---
+
+## Backups
+
+Create a point-in-time backup of a sandbox directory, list existing backups, or restore one.
+
+```clojure
+;; Create a backup of /workspace (optional :description and :ttl in seconds)
+(-> (pocketenv/get-sandbox "my-box")
+    (sandbox/create-backup "/workspace" {:description "before deploy" :ttl 86400}))
+;; => {:ok nil}
+
+;; List all backups for a sandbox
+(-> (pocketenv/get-sandbox "my-box")
+    (sandbox/list-backups))
+;; => {:ok [#Backup{:id "bk-..." :directory "/workspace" :description "before deploy"
+;;                  :expires-at "2026-04-08T..." :created-at "2026-04-07T..."}]}
+
+;; Restore a backup by its id (no sandbox instance needed)
+(sandbox/restore-backup "bk-...")
+;; => {:ok nil}
+```
+
+`Backup` fields: `:id`, `:directory`, `:description`, `:expires-at`, `:created-at`.
 
 ---
 

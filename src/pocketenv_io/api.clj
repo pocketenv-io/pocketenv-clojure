@@ -325,3 +325,33 @@
     (client/post "/xrpc/io.pocketenv.sandbox.putTailscaleAuthKey"
                  {"id" sandbox-id "authKey" encrypted "redacted" redacted}
                  opts)))
+
+;; ---------------------------------------------------------------------------
+;; Backups
+;; ---------------------------------------------------------------------------
+
+(defn create-backup
+  "Creates a backup of `directory` in the sandbox. Options: :description, :ttl, :token"
+  [sandbox-id directory opts]
+  (let [body (-> {"directory" directory}
+                 (maybe-assoc "description" (:description opts))
+                 (maybe-assoc "ttl"         (:ttl opts)))]
+    (client/post "/xrpc/io.pocketenv.sandbox.createBackup"
+                 body
+                 (assoc opts :params {"id" sandbox-id}))))
+
+(defn list-backups
+  "Lists all backups for a sandbox. Returns {:ok [Backup]}."
+  [sandbox-id opts]
+  (let [r (client/get "/xrpc/io.pocketenv.sandbox.getBackups"
+                      (assoc opts :params {"id" sandbox-id}))]
+    (if-let [data (:ok r)]
+      {:ok (mapv types/backup-from-map (get data "backups"))}
+      r)))
+
+(defn restore-backup
+  "Restores a backup by its id."
+  [backup-id opts]
+  (client/post "/xrpc/io.pocketenv.sandbox.restoreBackup"
+               {"backupId" backup-id}
+               opts))

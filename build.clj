@@ -4,7 +4,7 @@
             [deps-deploy.deps-deploy :as dd]))
 
 (def lib 'io.pocketenv/pocketenv)
-(def version "0.1.3-SNAPSHOT")
+(def version "0.1.4-SNAPSHOT")
 #_ ; alternatively, use MAJOR.MINOR.COMMITS:
   (def version (format "1.0.%s" (b/git-count-revs nil)))
 (def class-dir "target/classes")

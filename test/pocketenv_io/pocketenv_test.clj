@@ -201,3 +201,64 @@
                 :dest-path "/dest"
                 :opts      {:token "t"}}
                @calls))))))
+
+;; ---------------------------------------------------------------------------
+;; Backup
+;; ---------------------------------------------------------------------------
+
+(deftest backup-from-map-test
+  (testing "parses backup map"
+    (let [b (sandbox/backup-from-map {"id"          "bk-1"
+                                      "directory"   "/workspace"
+                                      "description" "my backup"
+                                      "expiresAt"   "2025-01-01"
+                                      "createdAt"   "2024-01-01"})]
+      (is (instance? pocketenv_io.sandbox.Backup b))
+      (is (= "bk-1" (:id b)))
+      (is (= "/workspace" (:directory b)))
+      (is (= "my backup" (:description b)))
+      (is (= "2025-01-01" (:expires-at b)))
+      (is (= "2024-01-01" (:created-at b)))))
+
+  (testing "optional fields default to nil"
+    (let [b (sandbox/backup-from-map {"id" "bk-2" "directory" "/home" "createdAt" "2024-01-01"})]
+      (is (nil? (:description b)))
+      (is (nil? (:expires-at b))))))
+
+(deftest sandbox-create-backup-test
+  (testing "create-backup delegates to api/create-backup with sandbox id"
+    (let [calls (atom nil)
+          sb    (sandbox/map->Sandbox {:id "sb-123" :name "my-box"})]
+      (with-redefs [pocketenv-io.api/create-backup
+                    (fn [sandbox-id directory opts]
+                      (reset! calls {:sandbox-id sandbox-id
+                                     :directory  directory
+                                     :opts       opts})
+                      {:ok nil})]
+        (is (= {:ok nil} (sandbox/create-backup sb "/workspace" {:token "t" :description "snap"})))
+        (is (= {:sandbox-id "sb-123"
+                :directory  "/workspace"
+                :opts       {:token "t" :description "snap"}}
+               @calls))))))
+
+(deftest sandbox-list-backups-test
+  (testing "list-backups delegates to api/list-backups with sandbox id"
+    (let [calls (atom nil)
+          sb    (sandbox/map->Sandbox {:id "sb-456" :name "my-box"})
+          fake  [(sandbox/map->Backup {:id "bk-1" :directory "/workspace"})]]
+      (with-redefs [pocketenv-io.api/list-backups
+                    (fn [sandbox-id opts]
+                      (reset! calls {:sandbox-id sandbox-id :opts opts})
+                      {:ok fake})]
+        (is (= {:ok fake} (sandbox/list-backups sb {:token "t"})))
+        (is (= {:sandbox-id "sb-456" :opts {:token "t"}} @calls))))))
+
+(deftest sandbox-restore-backup-test
+  (testing "restore-backup delegates to api/restore-backup with backup-id"
+    (let [calls (atom nil)]
+      (with-redefs [pocketenv-io.api/restore-backup
+                    (fn [backup-id opts]
+                      (reset! calls {:backup-id backup-id :opts opts})
+                      {:ok nil})]
+        (is (= {:ok nil} (sandbox/restore-backup "bk-99" {:token "t"})))
+        (is (= {:backup-id "bk-99" :opts {:token "t"}} @calls))))))
